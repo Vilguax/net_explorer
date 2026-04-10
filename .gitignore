@@ -32,3 +32,7 @@ logs/
 # Secrets / config
 config.local.py
 .env.local
+
+# Else
+.gitignore
+/.claude
