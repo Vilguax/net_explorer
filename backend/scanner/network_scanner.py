@@ -37,7 +37,7 @@ def get_default_interface() -> str:
     raise RuntimeError("Could not determine default interface.")
 
 
-def scan_hosts(network: str = None) -> list[dict]:
+def scan_hosts(network: str = None, spoof_mac: str = None) -> list[dict]:
     """
     Scan the network for active hosts.
     Returns a list of dicts: {ip, hostname, mac, vendor, status}
@@ -45,8 +45,12 @@ def scan_hosts(network: str = None) -> list[dict]:
     if network is None:
         network = get_local_network()
 
+    args = "-sn"
+    if spoof_mac:
+        args += f" --spoof-mac {spoof_mac}"
+
     nm = nmap.PortScanner()
-    nm.scan(hosts=network, arguments="-sn")
+    nm.scan(hosts=network, arguments=args)
 
     hosts = []
     for host in nm.all_hosts():

@@ -128,8 +128,8 @@ def run_scan(n_clicks, stealth_on):
     try:
         network = get_local_network()
         if stealth_on:
-            with stealth_session():
-                hosts = scan_hosts(network)
+            with stealth_session() as fake_mac:
+                hosts = scan_hosts(network, spoof_mac=fake_mac)
         else:
             hosts = scan_hosts(network)
 
