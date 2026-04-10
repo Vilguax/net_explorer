@@ -1,7 +1,10 @@
+import logging
 import threading
 from collections import defaultdict
 from datetime import datetime
-from scapy.all import sniff, IP, TCP, UDP, ARP, ICMP
+
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+from scapy.all import sniff, IP, TCP, UDP, ARP, ICMP  # noqa: E402
 
 
 class PacketSniffer:

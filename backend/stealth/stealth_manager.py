@@ -1,21 +1,32 @@
 import random
-import sys
 import subprocess
 import platform
-import netifaces
+import socket
+import psutil
 from contextlib import contextmanager
 
 
 def _get_default_interface() -> str:
-    """Return the name of the default network interface."""
-    gateways = netifaces.gateways()
-    return gateways["default"][netifaces.AF_INET][1]
+    """Return the name of the interface used for the default route."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+    finally:
+        s.close()
+    for iface, addrs in psutil.net_if_addrs().items():
+        for addr in addrs:
+            if addr.family == socket.AF_INET and addr.address == local_ip:
+                return iface
+    raise RuntimeError("Could not determine default interface.")
 
 
 def _get_current_mac(iface: str) -> str:
     """Return the current MAC address of an interface."""
-    addrs = netifaces.ifaddresses(iface)
-    return addrs[netifaces.AF_LINK][0]["addr"]
+    for addr in psutil.net_if_addrs().get(iface, []):
+        if addr.family == psutil.AF_LINK:
+            return addr.address
+    raise RuntimeError(f"No MAC address found for interface '{iface}'.")
 
 
 def generate_random_mac() -> str:

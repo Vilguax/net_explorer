@@ -4,151 +4,213 @@ from dash import dcc, html
 
 cyto.load_extra_layouts()
 
-layout = dbc.Container(
-    fluid=True,
-    style={"padding": "20px"},
+# ── Palette ───────────────────────────────────────────────────────────────────
+BG       = "#0d1117"
+SURFACE  = "#161b22"
+BORDER   = "#30363d"
+ACCENT   = "#58a6ff"
+SUCCESS  = "#3fb950"
+DANGER   = "#f85149"
+WARNING  = "#d29922"
+MUTED    = "#8b949e"
+TEXT     = "#e6edf3"
+
+card_style = {
+    "background": SURFACE,
+    "border": f"1px solid {BORDER}",
+    "borderRadius": "8px",
+    "padding": "0",
+}
+
+header_style = {
+    "background": "#1c2128",
+    "borderBottom": f"1px solid {BORDER}",
+    "borderRadius": "8px 8px 0 0",
+    "padding": "10px 16px",
+    "color": MUTED,
+    "fontSize": "12px",
+    "fontWeight": "600",
+    "letterSpacing": "0.05em",
+    "textTransform": "uppercase",
+}
+
+# ── Layout ────────────────────────────────────────────────────────────────────
+layout = html.Div(
+    style={"background": BG, "minHeight": "100vh", "padding": "24px", "fontFamily": "monospace"},
     children=[
 
         # ── Header ────────────────────────────────────────────────────
-        dbc.Row([
-            dbc.Col([
-                html.H2("Net Explorer", className="text-info mb-0"),
-                html.Small("Local network scanner & flow visualizer", className="text-muted"),
-            ], width=8),
-            dbc.Col([
-                dbc.Switch(id="stealth-toggle", label="Stealth mode", value=False,
-                           className="mt-2"),
-            ], width=2, className="text-end"),
-            dbc.Col([
-                dbc.Button("Scan network", id="scan-btn", color="info", className="mt-1 w-100"),
-            ], width=2),
-        ], className="mb-4 align-items-center"),
+        html.Div(
+            style={"display": "flex", "alignItems": "center", "justifyContent": "space-between", "marginBottom": "24px"},
+            children=[
+                html.Div([
+                    html.Span("net_explorer", style={"color": ACCENT, "fontSize": "22px", "fontWeight": "700"}),
+                    html.Span("  //  local network scanner", style={"color": MUTED, "fontSize": "13px"}),
+                ]),
+                html.Div(
+                    style={"display": "flex", "gap": "12px", "alignItems": "center"},
+                    children=[
+                        html.Div(
+                            style={"display": "flex", "alignItems": "center", "gap": "8px"},
+                            children=[
+                                dbc.Switch(id="stealth-toggle", value=False, style={"marginBottom": "0"}),
+                                html.Span("stealth", style={"color": MUTED, "fontSize": "12px"}),
+                            ]
+                        ),
+                        dbc.Button(
+                            "[ scan network ]",
+                            id="scan-btn",
+                            style={
+                                "background": "transparent",
+                                "border": f"1px solid {ACCENT}",
+                                "color": ACCENT,
+                                "fontFamily": "monospace",
+                                "fontSize": "13px",
+                                "padding": "6px 16px",
+                                "borderRadius": "4px",
+                            }
+                        ),
+                    ]
+                ),
+            ]
+        ),
 
         # ── Status bar ────────────────────────────────────────────────
-        dbc.Row([
-            dbc.Col(
-                html.Div(id="scan-status", className="text-muted small"),
-            )
-        ], className="mb-3"),
+        html.Div(
+            id="scan-status",
+            style={"color": MUTED, "fontSize": "12px", "marginBottom": "16px", "minHeight": "18px"},
+        ),
 
-        # ── Graph + Host table ────────────────────────────────────────
-        dbc.Row([
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader("Network graph"),
-                    dbc.CardBody(
-                        cyto.Cytoscape(
-                            id="network-graph",
-                            layout={"name": "cose"},
-                            style={"width": "100%", "height": "420px"},
-                            stylesheet=[
-                                {
-                                    "selector": "node",
-                                    "style": {
-                                        "label": "data(label)",
-                                        "background-color": "#17a2b8",
-                                        "color": "#fff",
-                                        "font-size": "11px",
-                                        "text-valign": "bottom",
-                                        "text-halign": "center",
-                                    },
+        # ── Graph + Hosts ─────────────────────────────────────────────
+        html.Div(
+            style={"display": "grid", "gridTemplateColumns": "2fr 1fr", "gap": "16px", "marginBottom": "16px"},
+            children=[
+                # Graph
+                html.Div(style=card_style, children=[
+                    html.Div("network graph", style=header_style),
+                    cyto.Cytoscape(
+                        id="network-graph",
+                        layout={"name": "cose"},
+                        style={"width": "100%", "height": "400px", "background": SURFACE, "borderRadius": "0 0 8px 8px"},
+                        stylesheet=[
+                            {
+                                "selector": "node",
+                                "style": {
+                                    "label": "data(label)",
+                                    "background-color": "#1f6feb",
+                                    "color": TEXT,
+                                    "font-size": "10px",
+                                    "font-family": "monospace",
+                                    "text-valign": "bottom",
+                                    "text-margin-y": "4px",
+                                    "width": 28, "height": 28,
+                                    "border-width": 2,
+                                    "border-color": ACCENT,
                                 },
-                                {
-                                    "selector": "node[type='gateway']",
-                                    "style": {"background-color": "#ffc107", "width": 40, "height": 40},
+                            },
+                            {
+                                "selector": "node[type='local']",
+                                "style": {
+                                    "background-color": "#238636",
+                                    "border-color": SUCCESS,
+                                    "width": 36, "height": 36,
                                 },
-                                {
-                                    "selector": "node[type='local']",
-                                    "style": {"background-color": "#28a745"},
+                            },
+                            {
+                                "selector": "edge",
+                                "style": {
+                                    "line-color": BORDER,
+                                    "target-arrow-color": BORDER,
+                                    "target-arrow-shape": "triangle",
+                                    "curve-style": "bezier",
+                                    "width": 1.5,
                                 },
-                                {
-                                    "selector": "edge",
-                                    "style": {
-                                        "line-color": "#555",
-                                        "target-arrow-color": "#555",
-                                        "target-arrow-shape": "triangle",
-                                        "curve-style": "bezier",
-                                        "width": 1.5,
-                                    },
-                                },
-                                {
-                                    "selector": "edge[proto='TCP']",
-                                    "style": {"line-color": "#17a2b8"},
-                                },
-                                {
-                                    "selector": "edge[proto='UDP']",
-                                    "style": {"line-color": "#6f42c1"},
-                                },
-                                {
-                                    "selector": "edge[proto='ARP']",
-                                    "style": {"line-color": "#fd7e14"},
-                                },
-                            ],
-                            elements=[],
-                        )
+                            },
+                            {"selector": "edge[proto='TCP']", "style": {"line-color": ACCENT}},
+                            {"selector": "edge[proto='UDP']", "style": {"line-color": "#a371f7"}},
+                            {"selector": "edge[proto='ARP']", "style": {"line-color": WARNING}},
+                        ],
+                        elements=[],
                     ),
-                ], color="dark", outline=True),
-            ], width=8),
+                ]),
 
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader("Discovered hosts"),
-                    dbc.CardBody(
-                        html.Div(id="hosts-table", style={"overflowY": "auto", "maxHeight": "380px"}),
+                # Hosts
+                html.Div(style=card_style, children=[
+                    html.Div("discovered hosts", style=header_style),
+                    html.Div(
+                        id="hosts-table",
+                        style={"overflowY": "auto", "maxHeight": "370px", "padding": "8px"},
+                        children=[html.Span("—", style={"color": MUTED, "fontSize": "12px"})],
                     ),
-                ], color="dark", outline=True),
-            ], width=4),
-        ], className="mb-4"),
+                ]),
+            ]
+        ),
 
         # ── Ports + Flows ─────────────────────────────────────────────
-        dbc.Row([
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader(
-                        dbc.Row([
-                            dbc.Col("Open ports", width=8),
-                            dbc.Col(
-                                dbc.Select(
-                                    id="port-host-select",
-                                    placeholder="Select a host...",
-                                    options=[],
-                                    size="sm",
-                                ),
-                                width=4,
+        html.Div(
+            style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "16px"},
+            children=[
+                # Ports
+                html.Div(style=card_style, children=[
+                    html.Div(
+                        style={**header_style, "display": "flex", "justifyContent": "space-between", "alignItems": "center"},
+                        children=[
+                            html.Span("open ports"),
+                            dbc.Select(
+                                id="port-host-select",
+                                placeholder="select host...",
+                                options=[],
+                                style={
+                                    "background": BG,
+                                    "border": f"1px solid {BORDER}",
+                                    "color": TEXT,
+                                    "fontFamily": "monospace",
+                                    "fontSize": "11px",
+                                    "padding": "2px 8px",
+                                    "width": "160px",
+                                    "height": "28px",
+                                }
                             ),
-                        ])
+                        ]
                     ),
-                    dbc.CardBody(
-                        html.Div(id="ports-table", style={"overflowY": "auto", "maxHeight": "260px"}),
+                    html.Div(
+                        id="ports-table",
+                        style={"overflowY": "auto", "maxHeight": "250px", "padding": "8px"},
+                        children=[html.Span("—", style={"color": MUTED, "fontSize": "12px"})],
                     ),
-                ], color="dark", outline=True),
-            ], width=6),
+                ]),
 
-            dbc.Col([
-                dbc.Card([
-                    dbc.CardHeader(
-                        dbc.Row([
-                            dbc.Col("Live flows", width=8),
-                            dbc.Col(
-                                dbc.ButtonGroup([
-                                    dbc.Button("Start", id="sniffer-start", color="success", size="sm"),
-                                    dbc.Button("Stop", id="sniffer-stop", color="danger", size="sm"),
-                                ]),
-                                width=4, className="text-end",
-                            ),
-                        ])
+                # Flows
+                html.Div(style=card_style, children=[
+                    html.Div(
+                        style={**header_style, "display": "flex", "justifyContent": "space-between", "alignItems": "center"},
+                        children=[
+                            html.Span("live flows"),
+                            html.Div([
+                                dbc.Button("start", id="sniffer-start", style={
+                                    "background": "transparent", "border": f"1px solid {SUCCESS}",
+                                    "color": SUCCESS, "fontFamily": "monospace", "fontSize": "11px",
+                                    "padding": "2px 10px", "marginRight": "6px",
+                                }),
+                                dbc.Button("stop", id="sniffer-stop", style={
+                                    "background": "transparent", "border": f"1px solid {DANGER}",
+                                    "color": DANGER, "fontFamily": "monospace", "fontSize": "11px",
+                                    "padding": "2px 10px",
+                                }),
+                            ]),
+                        ]
                     ),
-                    dbc.CardBody(
-                        html.Div(id="flows-table", style={"overflowY": "auto", "maxHeight": "260px"}),
+                    html.Div(
+                        id="flows-table",
+                        style={"overflowY": "auto", "maxHeight": "250px", "padding": "8px"},
+                        children=[html.Span("—", style={"color": MUTED, "fontSize": "12px"})],
                     ),
-                ], color="dark", outline=True),
-            ], width=6),
-        ]),
+                ]),
+            ]
+        ),
 
-        # ── Intervals ─────────────────────────────────────────────────
+        # ── Intervals + Store ─────────────────────────────────────────
         dcc.Interval(id="flow-interval", interval=2000, n_intervals=0, disabled=True),
-
-        # ── Stores ────────────────────────────────────────────────────
         dcc.Store(id="hosts-store", data=[]),
-    ],
+    ]
 )

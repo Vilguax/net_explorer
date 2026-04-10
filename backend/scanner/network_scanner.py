@@ -1,36 +1,52 @@
+import ipaddress
 import nmap
 import psutil
 import socket
-import netifaces
+
+
+def _get_local_ip() -> str:
+    """Get the local IP used to reach the outside world."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    finally:
+        s.close()
 
 
 def get_local_network() -> str:
     """Detect the local network CIDR (e.g. 192.168.1.0/24)."""
-    gateways = netifaces.gateways()
-    default_iface = gateways["default"][netifaces.AF_INET][1]
-    iface_info = netifaces.ifaddresses(default_iface)[netifaces.AF_INET][0]
-    ip = iface_info["addr"]
-    netmask = iface_info["netmask"]
+    local_ip = _get_local_ip()
+    for addrs in psutil.net_if_addrs().values():
+        for addr in addrs:
+            if addr.family == socket.AF_INET and addr.address == local_ip:
+                network = ipaddress.IPv4Network(
+                    f"{addr.address}/{addr.netmask}", strict=False
+                )
+                return str(network)
+    raise RuntimeError("Could not determine local network.")
 
-    # Convert IP + netmask to CIDR notation
-    ip_parts = list(map(int, ip.split(".")))
-    mask_parts = list(map(int, netmask.split(".")))
-    network = ".".join(str(ip_parts[i] & mask_parts[i]) for i in range(4))
-    prefix = sum(bin(x).count("1") for x in mask_parts)
 
-    return f"{network}/{prefix}"
+def get_default_interface() -> str:
+    """Return the name of the interface used for the default route."""
+    local_ip = _get_local_ip()
+    for iface, addrs in psutil.net_if_addrs().items():
+        for addr in addrs:
+            if addr.family == socket.AF_INET and addr.address == local_ip:
+                return iface
+    raise RuntimeError("Could not determine default interface.")
 
 
 def scan_hosts(network: str = None) -> list[dict]:
     """
     Scan the network for active hosts.
-    Returns a list of dicts: {ip, hostname, mac, status}
+    Returns a list of dicts: {ip, hostname, mac, vendor, status}
     """
     if network is None:
         network = get_local_network()
 
     nm = nmap.PortScanner()
-    nm.scan(hosts=network, arguments="-sn")  # Ping scan, no port scan
+    nm.scan(hosts=network, arguments="-sn")
 
     hosts = []
     for host in nm.all_hosts():
@@ -52,7 +68,7 @@ def scan_hosts(network: str = None) -> list[dict]:
 def scan_ports(ip: str, ports: str = "1-1024") -> list[dict]:
     """
     Scan open ports on a given host.
-    Returns a list of dicts: {port, protocol, state, service}
+    Returns a list of dicts: {port, protocol, state, service, version}
     """
     nm = nmap.PortScanner()
     nm.scan(hosts=ip, arguments=f"-sV -p {ports}")
