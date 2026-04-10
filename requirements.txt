@@ -1,0 +1,7 @@
+dash==2.18.1
+dash-cytoscape==1.0.2
+dash-bootstrap-components==1.6.0
+scapy==2.6.1
+python-nmap==0.7.1
+psutil==6.1.0
+netifaces==0.11.0
