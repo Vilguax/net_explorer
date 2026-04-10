@@ -35,4 +35,4 @@ config.local.py
 
 # Else
 .gitignore
-/.claude
+.claude/
